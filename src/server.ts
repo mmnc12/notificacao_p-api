@@ -12,6 +12,7 @@ import rateLimit from 'express-rate-limit';
 import { errorHandler } from './middlewares/errorHandler';
 import authRoutes from './routes/authRoutes';
 import localidadeRoutes from './routes/localidadeRoutes';
+import notificacaoRoutes from './routes/notificacaoRoutes';
 
 dotenv.config();
 
@@ -71,6 +72,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 
 app.use('/api/localidades', localidadeRoutes);
+app.use('/api/notificacoes', notificacaoRoutes);
 
 // ============================================
 // TRATAMENTO DE ERROS
