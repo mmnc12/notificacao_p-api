@@ -65,6 +65,87 @@ class RelatorioController {
       next(error);
     }
   }
+
+  /**
+   * Exportar relatório para Excel
+   */
+  async exportarExcel(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const filtros: IRelatorioFiltros = {
+        nome: req.query.nome as string,
+        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined,
+        status: req.query.status as 'ATIVO' | 'INATIVO',
+        ano: req.query.ano ? Number(req.query.ano) : undefined,
+        mes: req.query.mes ? Number(req.query.mes) : undefined,
+        dataInicio: req.query.dataInicio as string,
+        dataFim: req.query.dataFim as string,
+        resultado: req.query.resultado as 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO' | 'AGUARDANDO',
+        suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
+        suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
+        suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
+      };
+
+      const dados = await RelatorioService.gerarRelatorio(filtros);
+      await RelatorioService.exportarExcel(dados, res);
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Exportar relatório para PDF
+   */
+  async exportarPDF(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const filtros: IRelatorioFiltros = {
+        nome: req.query.nome as string,
+        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined,
+        status: req.query.status as 'ATIVO' | 'INATIVO',
+        ano: req.query.ano ? Number(req.query.ano) : undefined,
+        mes: req.query.mes ? Number(req.query.mes) : undefined,
+        dataInicio: req.query.dataInicio as string,
+        dataFim: req.query.dataFim as string,
+        resultado: req.query.resultado as 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO' | 'AGUARDANDO',
+        suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
+        suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
+        suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
+      };
+
+      const dados = await RelatorioService.gerarRelatorio(filtros);
+      await RelatorioService.exportarPDF(dados, res);
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Exportar relatório para CSV
+   */
+  async exportarCSV(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const filtros: IRelatorioFiltros = {
+        nome: req.query.nome as string,
+        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined,
+        status: req.query.status as 'ATIVO' | 'INATIVO',
+        ano: req.query.ano ? Number(req.query.ano) : undefined,
+        mes: req.query.mes ? Number(req.query.mes) : undefined,
+        dataInicio: req.query.dataInicio as string,
+        dataFim: req.query.dataFim as string,
+        resultado: req.query.resultado as 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO' | 'AGUARDANDO',
+        suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
+        suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
+        suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
+      };
+
+      const dados = await RelatorioService.gerarRelatorio(filtros);
+      await RelatorioService.exportarCSV(dados, res);
+
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new RelatorioController();

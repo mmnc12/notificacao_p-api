@@ -14,5 +14,8 @@ router.use(authMiddleware);
 // Rotas de relatórios
 router.get('/', RelatorioController.gerarRelatorio);
 router.get('/estatisticas', RelatorioController.obterEstatisticas);
+router.get('/excel', RelatorioController.exportarExcel);
+router.get('/pdf', RelatorioController.exportarPDF);
+router.get('/csv', RelatorioController.exportarCSV);
 
 export default router;

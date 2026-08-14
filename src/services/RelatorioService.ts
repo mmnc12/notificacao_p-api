@@ -5,6 +5,9 @@
 import pool from '../config/database';
 import { IRelatorioFiltros, IRelatorioEstatisticas } from '../interfaces/IRelatorio';
 import { RowDataPacket } from 'mysql2';
+import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
+import { Response } from 'express';
 
 class RelatorioService {
   /**
@@ -78,17 +81,7 @@ class RelatorioService {
       params.push(filtros.suspeita_chikungunya);
     }
 
-    // Ordenação
-    const orderBy = filtros.orderBy || 'n.id';
-    const orderDirection = filtros.orderDirection || 'DESC';
-    query += ` ORDER BY ${orderBy} ${orderDirection}`;
-
-    // Paginação
-    if (filtros.page && filtros.limit) {
-      const offset = (filtros.page - 1) * filtros.limit;
-      query += ` LIMIT ? OFFSET ?`;
-      params.push(filtros.limit, offset);
-    }
+    query += ` ORDER BY n.id DESC`;
 
     const [rows] = await pool.query<RowDataPacket[]>(query, params);
     return rows;
@@ -98,7 +91,6 @@ class RelatorioService {
    * Obter estatísticas
    */
   async obterEstatisticas(filtros: IRelatorioFiltros): Promise<IRelatorioEstatisticas> {
-    // Query principal de estatísticas
     let statsQuery = `
       SELECT 
         COUNT(*) as total,
@@ -118,7 +110,6 @@ class RelatorioService {
     `;
     const params: any[] = [];
 
-    // Aplicar filtros de data para as estatísticas
     if (filtros.dataInicio && filtros.dataFim) {
       statsQuery += ` AND n.dt_notificacao BETWEEN ? AND ?`;
       params.push(filtros.dataInicio, filtros.dataFim);
@@ -219,7 +210,6 @@ class RelatorioService {
 
     const [porMes] = await pool.query<RowDataPacket[]>(mesQuery, mesParams);
 
-    // ✅ CORREÇÃO: Converter para o tipo esperado
     return {
       total: Number(estatisticas.total) || 0,
       ativos: Number(estatisticas.ativos) || 0,
@@ -236,6 +226,170 @@ class RelatorioService {
       por_localidade: porLocalidade as any[],
       por_mes: porMes as any[]
     };
+  }
+
+  /**
+   * Exportar para Excel
+   */
+  async exportarExcel(dados: any[], res: Response): Promise<void> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Relatório de Notificações');
+
+    // Definir colunas
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 8 },
+      { header: 'Paciente', key: 'nome_paciente', width: 30 },
+      { header: 'Mãe', key: 'nome_mae', width: 30 },
+      { header: 'Localidade', key: 'localidade_nome', width: 25 },
+      { header: 'Endereço', key: 'endereco', width: 30 },
+      { header: '1ºs Sintomas', key: 'dt_primeiros_sintomas', width: 15 },
+      { header: 'Notificação', key: 'dt_notificacao', width: 15 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Resultado', key: 'resultado', width: 15 },
+      { header: 'Data Resultado', key: 'dt_resultado', width: 15 },
+      { header: 'Dengue', key: 'suspeita_dengue', width: 10 },
+      { header: 'Zika', key: 'suspeita_zika', width: 10 },
+      { header: 'Chikungunya', key: 'suspeita_chikungunya', width: 15 },
+      { header: 'Bloqueio', key: 'bloqueio_realizado', width: 12 }
+    ];
+
+    // Estilizar cabeçalho
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '1E3A8A' }
+    };
+    worksheet.getRow(1).alignment = { horizontal: 'center' };
+
+    // Adicionar dados
+    dados.forEach(item => {
+      worksheet.addRow({
+        id: item.id,
+        nome_paciente: item.nome_paciente,
+        nome_mae: item.nome_mae,
+        localidade_nome: item.localidade_nome,
+        endereco: item.endereco || 'Não informado',
+        dt_primeiros_sintomas: item.dt_primeiros_sintomas,
+        dt_notificacao: item.dt_notificacao,
+        status: item.status,
+        resultado: item.resultado || 'Aguardando',
+        dt_resultado: item.dt_resultado || '',
+        suspeita_dengue: item.suspeita_dengue ? 'Sim' : 'Não',
+        suspeita_zika: item.suspeita_zika ? 'Sim' : 'Não',
+        suspeita_chikungunya: item.suspeita_chikungunya ? 'Sim' : 'Não',
+        bloqueio_realizado: item.bloqueio_realizado ? 'Sim' : 'Não'
+      });
+    });
+
+    // Configurar headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=relatorio_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  }
+
+  /**
+   * Exportar para PDF
+   */
+  async exportarPDF(dados: any[], res: Response): Promise<void> {
+    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=relatorio_${new Date().toISOString().split('T')[0]}.pdf`
+    );
+
+    doc.pipe(res);
+
+    // Título
+    doc.fontSize(18).text('Relatório de Notificações de Arboviroses', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(10).text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
+    doc.text(`Total de registros: ${dados.length}`, { align: 'center' });
+    doc.moveDown(1.5);
+
+    // Dados em tabela
+    dados.forEach((item, index) => {
+      if (index > 0 && index % 20 === 0) {
+        doc.addPage();
+      }
+
+      const suspeitas = [];
+      if (item.suspeita_dengue) suspeitas.push('Dengue');
+      if (item.suspeita_zika) suspeitas.push('Zika');
+      if (item.suspeita_chikungunya) suspeitas.push('Chikungunya');
+
+      doc.fontSize(11).fillColor('#1E3A8A').text(`${index + 1}. ${item.nome_paciente}`);
+      doc.fontSize(9).fillColor('#000000');
+      doc.text(`   Mãe: ${item.nome_mae}`);
+      doc.text(`   Localidade: ${item.localidade_nome}`);
+      doc.text(`   Endereço: ${item.endereco || 'Não informado'}`);
+      doc.text(`   1ºs Sintomas: ${item.dt_primeiros_sintomas} | Notificação: ${item.dt_notificacao}`);
+      doc.text(`   Status: ${item.status} | Resultado: ${item.resultado || 'Aguardando'}`);
+      doc.text(`   Suspeitas: ${suspeitas.join(', ') || 'Nenhuma'}`);
+      doc.text(`   Bloqueio: ${item.bloqueio_realizado ? 'Realizado' : 'Não realizado'}`);
+      doc.moveDown(0.8);
+    });
+
+    doc.end();
+  }
+
+  /**
+   * Exportar para CSV
+   */
+  async exportarCSV(dados: any[], res: Response): Promise<void> {
+    const headers = [
+      'ID',
+      'Paciente',
+      'Mãe',
+      'Localidade',
+      'Endereço',
+      '1ºs Sintomas',
+      'Notificação',
+      'Status',
+      'Resultado',
+      'Dengue',
+      'Zika',
+      'Chikungunya',
+      'Bloqueio'
+    ];
+
+    let csv = headers.join(',') + '\n';
+
+    dados.forEach(item => {
+      const row = [
+        item.id,
+        `"${item.nome_paciente}"`,
+        `"${item.nome_mae}"`,
+        `"${item.localidade_nome}"`,
+        `"${item.endereco || ''}"`,
+        item.dt_primeiros_sintomas,
+        item.dt_notificacao,
+        item.status,
+        item.resultado || 'Aguardando',
+        item.suspeita_dengue ? 'Sim' : 'Não',
+        item.suspeita_zika ? 'Sim' : 'Não',
+        item.suspeita_chikungunya ? 'Sim' : 'Não',
+        item.bloqueio_realizado ? 'Sim' : 'Não'
+      ];
+      csv += row.join(',') + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=relatorio_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    res.send(csv);
   }
 }
 
