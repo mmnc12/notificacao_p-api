@@ -8,6 +8,8 @@ import { RowDataPacket } from 'mysql2';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 
 class RelatorioService {
   /**
@@ -24,7 +26,6 @@ class RelatorioService {
     `;
     const params: any[] = [];
 
-    // Aplicar filtros
     if (filtros.nome) {
       query += ` AND n.nome_paciente LIKE ?`;
       params.push(`%${filtros.nome}%`);
@@ -139,7 +140,6 @@ class RelatorioService {
     const [stats] = await pool.query<RowDataPacket[]>(statsQuery, params);
     const estatisticas = stats[0] as any;
 
-    // Estatísticas por localidade
     let localidadeQuery = `
       SELECT 
         l.id as localidade_id,
@@ -179,7 +179,6 @@ class RelatorioService {
 
     const [porLocalidade] = await pool.query<RowDataPacket[]>(localidadeQuery, localidadeParams);
 
-    // Estatísticas por mês
     let mesQuery = `
       SELECT 
         DATE_FORMAT(dt_notificacao, '%Y-%m') as mes,
@@ -229,13 +228,26 @@ class RelatorioService {
   }
 
   /**
+   * Formatar data para dd/mm/aaaa
+   */
+  private formatarData(data: string | Date): string {
+    if (!data) return '-';
+    const d = new Date(data);
+    if (isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+
+  /**
    * Exportar para Excel
    */
   async exportarExcel(dados: any[], res: Response): Promise<void> {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Relatório de Notificações');
 
-    // Definir colunas
     worksheet.columns = [
       { header: 'ID', key: 'id', width: 8 },
       { header: 'Paciente', key: 'nome_paciente', width: 30 },
@@ -253,7 +265,6 @@ class RelatorioService {
       { header: 'Bloqueio', key: 'bloqueio_realizado', width: 12 }
     ];
 
-    // Estilizar cabeçalho
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFF' } };
     worksheet.getRow(1).fill = {
       type: 'pattern',
@@ -262,7 +273,6 @@ class RelatorioService {
     };
     worksheet.getRow(1).alignment = { horizontal: 'center' };
 
-    // Adicionar dados
     dados.forEach(item => {
       worksheet.addRow({
         id: item.id,
@@ -270,11 +280,11 @@ class RelatorioService {
         nome_mae: item.nome_mae,
         localidade_nome: item.localidade_nome,
         endereco: item.endereco || 'Não informado',
-        dt_primeiros_sintomas: item.dt_primeiros_sintomas,
-        dt_notificacao: item.dt_notificacao,
+        dt_primeiros_sintomas: this.formatarData(item.dt_primeiros_sintomas),
+        dt_notificacao: this.formatarData(item.dt_notificacao),
         status: item.status,
         resultado: item.resultado || 'Aguardando',
-        dt_resultado: item.dt_resultado || '',
+        dt_resultado: item.dt_resultado ? this.formatarData(item.dt_resultado) : '',
         suspeita_dengue: item.suspeita_dengue ? 'Sim' : 'Não',
         suspeita_zika: item.suspeita_zika ? 'Sim' : 'Não',
         suspeita_chikungunya: item.suspeita_chikungunya ? 'Sim' : 'Não',
@@ -282,7 +292,6 @@ class RelatorioService {
       });
     });
 
-    // Configurar headers
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -299,8 +308,22 @@ class RelatorioService {
   /**
    * Exportar para PDF
    */
+  // ============================================
+// src/services/RelatorioService.ts (somente a parte do PDF)
+// ============================================
+
+  /**
+   * Exportar para PDF
+   */
   async exportarPDF(dados: any[], res: Response): Promise<void> {
-    const doc = new PDFDocument({ margin: 30, size: 'A4' });
+    const doc = new PDFDocument({
+      margin: 40,
+      size: 'A4',
+      info: {
+        Title: 'Relatório de Notificações',
+        Author: 'Setor de Endemias'
+      }
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
@@ -310,35 +333,199 @@ class RelatorioService {
 
     doc.pipe(res);
 
-    // Título
-    doc.fontSize(18).text('Relatório de Notificações de Arboviroses', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(10).text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, { align: 'center' });
-    doc.text(`Total de registros: ${dados.length}`, { align: 'center' });
-    doc.moveDown(1.5);
+   
 
-    // Dados em tabela
-    dados.forEach((item, index) => {
-      if (index > 0 && index % 20 === 0) {
+    const yLogo = 40;
+    const yTextos = 10; // Alinhado com a logo
+
+    // Logo (lado esquerdo, alinhado com os textos)
+    const logoPath = path.join(__dirname, '../assets/logo.png');
+    if (fs.existsSync(logoPath)) {
+      try {
+        doc.image(logoPath, 40, yLogo, { width: 60, height: 60 });
+      } catch (error) {
+        console.log('Erro ao carregar logo:', error);
+      }
+    } else {
+      console.log('Logo não encontrada em:', logoPath);
+    }
+
+    // Títulos (centralizados, alinhados verticalmente com a logo)
+    doc.moveUp(4);
+    doc.fontSize(14)
+      .font('Helvetica-Bold')
+      .fillColor('#1a3a6b')
+      .text('PREFEITURA MUNICIPAL DE PINDOBAÇU', {
+        align: 'center'
+      });
+
+    doc.moveDown(0.3);
+    doc.fontSize(12)
+      .font('Helvetica')
+      .fillColor('#333333')
+      .text('SECRETARIA MUNICIPAL DE SAÚDE', {
+        align: 'center'
+      });
+
+    doc.moveDown(0.2);
+    doc.fontSize(12)
+      .font('Helvetica')
+      .text('SETOR DE ENDEMIAS', {
+        align: 'center'
+      });
+
+    doc.moveDown(1);
+
+    // Linha separadora
+    doc.strokeColor('#1a3a6b')
+      .lineWidth(1.5)
+      .moveTo(40, doc.y)
+      .lineTo(550, doc.y)
+      .stroke();
+
+    doc.moveDown(1);
+
+    // ============================================
+    // TÍTULO DO RELATÓRIO
+    // ============================================
+
+    doc.fontSize(16)
+      .font('Helvetica-Bold')
+      .fillColor('#1a3a6b')
+      .text('Relatório de Notificações de Arboviroses', { align: 'center' });
+
+    doc.moveDown(0.3);
+    doc.fontSize(10)
+      .font('Helvetica')
+      .fillColor('#666666')
+      .text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, { align: 'center' });
+    doc.text(`Total de registros: ${dados.length}`, { align: 'center' });
+
+    doc.moveDown(1);
+
+    // ============================================
+    // TABELA DE DADOS
+    // ============================================
+
+    const colunas = {
+      id: { label: 'ID', width: 35, x: 40 },
+      paciente: { label: 'Paciente', width: 70, x: 78 },
+      mae: { label: 'Mãe', width: 70, x: 150 },
+      localidade: { label: 'Localidade', width: 70, x: 220 },
+      sintomas: { label: '1ºs Sintomas', width: 70, x: 290 },
+      notificacao: { label: 'Notificação', width: 70, x: 360 },
+      status: { label: 'Status', width: 55, x: 430 },
+      resultado: { label: 'Resultado', width: 65, x: 485 }
+    };
+
+    let yAtual = doc.y;
+
+    // Cabeçalho da tabela
+    doc.rect(40, yAtual - 2, 525, 18)
+      .fillColor('#1a3a6b')
+      .fill();
+
+    doc.fillColor('#FFFFFF')
+      .font('Helvetica-Bold')
+      .fontSize(8);
+
+    Object.values(colunas).forEach(col => {
+      doc.text(col.label, col.x, yAtual, {
+        width: col.width,
+        align: 'center'
+      });
+    });
+
+    yAtual += 20;
+
+    // Dados da tabela
+    doc.fillColor('#000000')
+      .font('Helvetica')
+      .fontSize(7);
+
+    let contador = 0;
+    for (const item of dados) {
+      if (yAtual > 750) {
         doc.addPage();
+        yAtual = 40;
+
+        doc.rect(40, yAtual - 2, 525, 18)
+          .fillColor('#1a3a6b')
+          .fill();
+
+        doc.fillColor('#FFFFFF')
+          .font('Helvetica-Bold')
+          .fontSize(8);
+
+        Object.values(colunas).forEach(col => {
+          doc.text(col.label, col.x, yAtual, {
+            width: col.width,
+            align: 'center'
+          });
+        });
+
+        yAtual += 20;
+        doc.fillColor('#000000')
+          .font('Helvetica')
+          .fontSize(7);
       }
 
-      const suspeitas = [];
-      if (item.suspeita_dengue) suspeitas.push('Dengue');
-      if (item.suspeita_zika) suspeitas.push('Zika');
-      if (item.suspeita_chikungunya) suspeitas.push('Chikungunya');
+      if (contador % 2 === 0) {
+        doc.rect(40, yAtual - 2, 525, 14)
+          .fillColor('#F5F5F5')
+          .fill();
+      }
 
-      doc.fontSize(11).fillColor('#1E3A8A').text(`${index + 1}. ${item.nome_paciente}`);
-      doc.fontSize(9).fillColor('#000000');
-      doc.text(`   Mãe: ${item.nome_mae}`);
-      doc.text(`   Localidade: ${item.localidade_nome}`);
-      doc.text(`   Endereço: ${item.endereco || 'Não informado'}`);
-      doc.text(`   1ºs Sintomas: ${item.dt_primeiros_sintomas} | Notificação: ${item.dt_notificacao}`);
-      doc.text(`   Status: ${item.status} | Resultado: ${item.resultado || 'Aguardando'}`);
-      doc.text(`   Suspeitas: ${suspeitas.join(', ') || 'Nenhuma'}`);
-      doc.text(`   Bloqueio: ${item.bloqueio_realizado ? 'Realizado' : 'Não realizado'}`);
-      doc.moveDown(0.8);
-    });
+      doc.fillColor('#000000')
+        .font('Helvetica')
+        .fontSize(7);
+
+      doc.text(String(item.id || ''), colunas.id.x, yAtual, {
+        width: colunas.id.width,
+        align: 'center'
+      });
+
+      const nomePaciente = item.nome_paciente ? item.nome_paciente.substring(0, 20) : '';
+      doc.text(nomePaciente, colunas.paciente.x, yAtual, {
+        width: colunas.paciente.width,
+        align: 'center'
+      });
+
+      const nomeMae = item.nome_mae ? item.nome_mae.substring(0, 20) : '';
+      doc.text(nomeMae, colunas.mae.x, yAtual, {
+        width: colunas.mae.width,
+        align: 'center'
+      });
+
+      const localidade = item.localidade_nome ? item.localidade_nome.substring(0, 18) : '';
+      doc.text(localidade, colunas.localidade.x, yAtual, {
+        width: colunas.localidade.width,
+        align: 'center'
+      });
+
+      doc.text(this.formatarData(item.dt_primeiros_sintomas), colunas.sintomas.x, yAtual, {
+        width: colunas.sintomas.width,
+        align: 'center'
+      });
+
+      doc.text(this.formatarData(item.dt_notificacao), colunas.notificacao.x, yAtual, {
+        width: colunas.notificacao.width,
+        align: 'center'
+      });
+
+      doc.text(item.status || '-', colunas.status.x, yAtual, {
+        width: colunas.status.width,
+        align: 'center'
+      });
+
+      doc.text(item.resultado || 'Aguardando', colunas.resultado.x, yAtual, {
+        width: colunas.resultado.width,
+        align: 'center'
+      });
+
+      yAtual += 16;
+      contador++;
+    }
 
     doc.end();
   }
@@ -363,25 +550,26 @@ class RelatorioService {
       'Bloqueio'
     ];
 
-    let csv = headers.join(',') + '\n';
+    const BOM = '\uFEFF';
+    let csv = BOM + headers.join(';') + '\n';
 
     dados.forEach(item => {
       const row = [
-        item.id,
-        `"${item.nome_paciente}"`,
-        `"${item.nome_mae}"`,
-        `"${item.localidade_nome}"`,
-        `"${item.endereco || ''}"`,
-        item.dt_primeiros_sintomas,
-        item.dt_notificacao,
-        item.status,
+        item.id || '',
+        `"${(item.nome_paciente || '').replace(/"/g, '""')}"`,
+        `"${(item.nome_mae || '').replace(/"/g, '""')}"`,
+        `"${(item.localidade_nome || '').replace(/"/g, '""')}"`,
+        `"${(item.endereco || '').replace(/"/g, '""')}"`,
+        this.formatarData(item.dt_primeiros_sintomas),
+        this.formatarData(item.dt_notificacao),
+        item.status || '',
         item.resultado || 'Aguardando',
         item.suspeita_dengue ? 'Sim' : 'Não',
         item.suspeita_zika ? 'Sim' : 'Não',
         item.suspeita_chikungunya ? 'Sim' : 'Não',
         item.bloqueio_realizado ? 'Sim' : 'Não'
       ];
-      csv += row.join(',') + '\n';
+      csv += row.join(';') + '\n';
     });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
