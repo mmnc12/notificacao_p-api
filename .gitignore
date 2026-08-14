@@ -1,0 +1,28 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Compilação TypeScript
+dist/
+build/
+*.js
+*.js.map
+*.d.ts
+
+# Arquivos de ambiente
+.env
+.env.local
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Relatórios gerados
+*.xlsx
+*.pdf
+*.csv
