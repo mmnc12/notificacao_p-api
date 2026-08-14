@@ -14,6 +14,7 @@ import authRoutes from './routes/authRoutes';
 import localidadeRoutes from './routes/localidadeRoutes';
 import notificacaoRoutes from './routes/notificacaoRoutes';
 import relatorioRoutes from './routes/relatorioRoutes';
+import geolocalizacaoRoutes from './routes/geolocalizacaoRoutes';
 
 dotenv.config();
 
@@ -75,6 +76,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/localidades', localidadeRoutes);
 app.use('/api/notificacoes', notificacaoRoutes);
 app.use('/api/relatorios', relatorioRoutes);
+app.use('/api/geolocalizacao', geolocalizacaoRoutes);
 
 // ============================================
 // TRATAMENTO DE ERROS

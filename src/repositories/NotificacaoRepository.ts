@@ -106,7 +106,7 @@ class NotificacaoRepository {
       WHERE n.id = ?
     `;
     const [rows] = await pool.query<RowDataPacket[]>(query, [id]);
-    
+
     if (rows.length === 0) return null;
     return rows[0] as INotificacao;
   }
@@ -233,6 +233,29 @@ class NotificacaoRepository {
       WHERE id = ?
     `;
     const [result] = await pool.query<ResultSetHeader>(query, [observacoes || null, id]);
+    return result.affectedRows > 0;
+  }
+
+  /**
+   * Atualizar coordenadas de uma notificação
+   */
+  async atualizarCoordenadas(
+    id: number,
+    latitude: number,
+    longitude: number,
+    link_google_earth?: string
+  ): Promise<boolean> {
+    const query = `
+      UPDATE notificacoes SET
+        latitude = ?,
+        longitude = ?,
+        link_google_earth = ?
+      WHERE id = ?
+    `;
+    const [result] = await pool.query<ResultSetHeader>(
+      query,
+      [latitude, longitude, link_google_earth || null, id]
+    );
     return result.affectedRows > 0;
   }
 }
