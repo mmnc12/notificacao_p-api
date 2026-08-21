@@ -1,5 +1,5 @@
 // ============================================
-// server.ts - VERSÃO COM ROTA DE TESTE
+// server.ts - COM ROTA DE TESTE /ping
 // ============================================
 
 import express from 'express';
@@ -23,14 +23,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // ============================================
-// ✅ ROTA DE TESTE (MAIS SIMPLES POSSÍVEL)
-// ============================================
-
-app.get('/test', (req, res) => {
-  res.json({ message: 'Servidor está funcionando!' });
-});
-
-// ============================================
 // ✅ CORS
 // ============================================
 
@@ -40,6 +32,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
+
+// ============================================
+// ROTA DE TESTE DIRETA (/ping)
+// ============================================
+
+app.get('/ping', (req, res) => {
+  res.status(200).json({ 
+    message: 'pong', 
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
 
 // ============================================
 // CONFIGURAÇÕES BÁSICAS
