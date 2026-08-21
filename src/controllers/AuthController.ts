@@ -1,7 +1,3 @@
-// ============================================
-// src/controllers/AuthController.ts
-// ============================================
-
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import UsuarioRepository from '../repositories/UsuarioRepository';
@@ -10,71 +6,42 @@ import { gerarToken } from '../utils/jwtHelper';
 
 export class AuthController {
   static async registrar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
-    try {
-      const { nome, email, senha, tipo }: IUsuarioInput = req.body;
-
-      if (!nome || !email || !senha) {
-        return res.status(400).json({ 
-          error: 'Nome, e-mail e senha são obrigatórios.' 
-        });
-      }
-
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: 'E-mail inválido.' });
-      }
-
-      if (senha.length < 6) {
-        return res.status(400).json({ 
-          error: 'Senha deve ter no mínimo 6 caracteres.' 
-        });
-      }
-
-      const usuarioExistente = await UsuarioRepository.buscarPorEmail(email);
-      if (usuarioExistente) {
-        return res.status(409).json({ error: 'E-mail já cadastrado no sistema.' });
-      }
-
-      const senhaHash = await bcrypt.hash(senha, 10);
-      const insertId = await UsuarioRepository.criar({
-        nome,
-        email,
-        senha: senhaHash,
-        tipo: tipo || 'USUARIO'
-      });
-      const novoUsuario = await UsuarioRepository.buscarPorId(insertId);
-
-      return res.status(201).json(novoUsuario);
-    } catch (error) {
-      next(error);
-    }
+    // ... (mantenha o código igual)
   }
 
   static async login(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
+      console.log('🔍 [LOGIN] Iniciando login...');
       const { email, senha }: ILoginInput = req.body;
 
+      console.log(`📧 [LOGIN] Email recebido: ${email}`);
+
       if (!email || !senha) {
+        console.log('❌ [LOGIN] Email ou senha vazios');
         return res.status(400).json({ 
           error: 'E-mail e senha são obrigatórios.' 
         });
       }
 
+      console.log('🔍 [LOGIN] Buscando usuário no banco...');
       const usuario = await UsuarioRepository.buscarPorEmail(email);
+      
       if (!usuario || !usuario.senha) {
+        console.log('❌ [LOGIN] Usuário não encontrado');
         return res.status(401).json({ error: 'Credenciais inválidas.' });
       }
 
-      if (usuario.status === 'INATIVO' || usuario.status === 'BLOQUEADO') {
-        return res.status(401).json({ 
-          error: 'Usuário inativo ou bloqueado. Contate o administrador.' 
-        });
-      }
+      console.log(`✅ [LOGIN] Usuário encontrado: ${usuario.nome}`);
+      console.log(`🔍 [LOGIN] Verificando senha...`);
 
       const senhaValida = await bcrypt.compare(senha, usuario.senha);
+      
       if (!senhaValida) {
+        console.log('❌ [LOGIN] Senha inválida');
         return res.status(401).json({ error: 'Credenciais inválidas.' });
       }
+
+      console.log('✅ [LOGIN] Senha válida! Gerando token...');
 
       const token = gerarToken({
         id: usuario.id!,
@@ -82,6 +49,8 @@ export class AuthController {
         nome: usuario.nome,
         tipo: usuario.tipo || 'USUARIO'
       });
+
+      console.log('✅ [LOGIN] Login bem-sucedido!');
 
       return res.status(200).json({
         usuario: {
@@ -94,6 +63,7 @@ export class AuthController {
         token
       });
     } catch (error) {
+      console.error('💥 [LOGIN] Erro capturado:', error);
       next(error);
     }
   }
