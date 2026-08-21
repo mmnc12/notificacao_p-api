@@ -12,6 +12,7 @@ build/
 # Arquivos de ambiente
 .env
 .env.local
+.env.production
 
 # Arquivos de sistema
 .DS_Store

@@ -8,9 +8,9 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2';
 
 class NotificacaoRepository {
   /**
-   * Listar notificações com filtros
+   * Listar notificações com filtros e paginação
    */
-  async listarComFiltros(filtros: INotificacaoFiltros): Promise<INotificacao[]> {
+  async listarComFiltros(filtros: INotificacaoFiltros): Promise<{ dados: INotificacao[]; total: number }> {
     let query = `
       SELECT 
         n.*,
@@ -87,10 +87,76 @@ class NotificacaoRepository {
       params.push(filtros.suspeita_chikungunya);
     }
 
-    query += ` ORDER BY n.id DESC`;
+    // ============================================
+    // ✅ CONTAR TOTAL DE REGISTROS (SEM PAGINAÇÃO)
+    // ============================================
+    
+    // Criar uma cópia da query para contar
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM notificacoes n
+      LEFT JOIN localidades l ON n.localidade_id = l.id
+      WHERE 1=1
+    `;
+
+    // Reaplicar os mesmos filtros para a contagem
+    // (usamos os mesmos params, pois os filtros são os mesmos)
+    if (filtros.nome) {
+      countQuery += ` AND n.nome_paciente LIKE ?`;
+    }
+    if (filtros.localidade_id) {
+      countQuery += ` AND n.localidade_id = ?`;
+    }
+    if (filtros.status) {
+      countQuery += ` AND n.status = ?`;
+    }
+    if (filtros.ano) {
+      countQuery += ` AND YEAR(n.dt_notificacao) = ?`;
+    }
+    if (filtros.mes) {
+      countQuery += ` AND MONTH(n.dt_notificacao) = ?`;
+    }
+    if (filtros.dataInicio && filtros.dataFim) {
+      countQuery += ` AND n.dt_notificacao BETWEEN ? AND ?`;
+    } else if (filtros.dataInicio) {
+      countQuery += ` AND n.dt_notificacao >= ?`;
+    } else if (filtros.dataFim) {
+      countQuery += ` AND n.dt_notificacao <= ?`;
+    }
+    if (filtros.resultado) {
+      countQuery += ` AND n.resultado = ?`;
+    }
+    if (filtros.suspeita_dengue !== undefined) {
+      countQuery += ` AND n.suspeita_dengue = ?`;
+    }
+    if (filtros.suspeita_zika !== undefined) {
+      countQuery += ` AND n.suspeita_zika = ?`;
+    }
+    if (filtros.suspeita_chikungunya !== undefined) {
+      countQuery += ` AND n.suspeita_chikungunya = ?`;
+    }
+
+    // Executar a contagem
+    const [countRows] = await pool.query<RowDataPacket[]>(countQuery, params);
+    const total = countRows[0].total;
+
+    // ============================================
+    // ✅ APLICAR PAGINAÇÃO
+    // ============================================
+
+    const page = filtros.page || 1;
+    const limit = filtros.limit || 10;
+    const offset = (page - 1) * limit;
+
+    query += ` ORDER BY n.id DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
 
     const [rows] = await pool.query<RowDataPacket[]>(query, params);
-    return rows as INotificacao[];
+    
+    return { 
+      dados: rows as INotificacao[], 
+      total 
+    };
   }
 
   /**
@@ -148,7 +214,7 @@ class NotificacaoRepository {
       dados.longitude || null,
       dados.link_google_earth || null,
       dados.dt_notificacao,
-      dados.dt_recebimento,
+      dados.dt_recebimento || null,
       dados.suspeita_dengue,
       dados.suspeita_zika,
       dados.suspeita_chikungunya,
@@ -198,7 +264,7 @@ class NotificacaoRepository {
       dados.longitude || null,
       dados.link_google_earth || null,
       dados.dt_notificacao,
-      dados.dt_recebimento,
+      dados.dt_recebimento || null,
       dados.suspeita_dengue,
       dados.suspeita_zika,
       dados.suspeita_chikungunya,
@@ -209,6 +275,19 @@ class NotificacaoRepository {
     ];
 
     const [result] = await pool.query<ResultSetHeader>(query, values);
+    return result.affectedRows > 0;
+  }
+
+  /**
+   * Atualizar apenas a data de recebimento
+   */
+  async atualizarRecebimento(id: number, dt_recebimento: string | null): Promise<boolean> {
+    const query = `
+      UPDATE notificacoes SET
+        dt_recebimento = ?
+      WHERE id = ?
+    `;
+    const [result] = await pool.query<ResultSetHeader>(query, [dt_recebimento, id]);
     return result.affectedRows > 0;
   }
 

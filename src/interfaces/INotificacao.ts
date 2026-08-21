@@ -14,7 +14,7 @@ export interface INotificacao {
   longitude: number | null;
   link_google_earth: string | null;
   dt_notificacao: string;
-  dt_recebimento: string;
+  dt_recebimento?: string | null;
   status: 'ATIVO' | 'INATIVO';
   suspeita_dengue: boolean;
   suspeita_zika: boolean;
@@ -40,7 +40,7 @@ export interface INotificacaoInput {
   longitude?: number;
   link_google_earth?: string;
   dt_notificacao: string;
-  dt_recebimento: string;
+  dt_recebimento?: string | null;
   suspeita_dengue: boolean;
   suspeita_zika: boolean;
   suspeita_chikungunya: boolean;
@@ -61,4 +61,6 @@ export interface INotificacaoFiltros {
   suspeita_dengue?: boolean;
   suspeita_zika?: boolean;
   suspeita_chikungunya?: boolean;
+  page?: number;
+  limit?: number;
 }

@@ -10,5 +10,8 @@ const router = Router();
 
 // 🔒 Rota protegida - requer autenticação
 router.get('/', authMiddleware, LocalidadeController.listar);
+router.post('/', LocalidadeController.criar); 
+router.put('/:id', LocalidadeController.atualizar);
+router.delete('/:id', LocalidadeController.deletar); 
 
 export default router;

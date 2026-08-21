@@ -344,10 +344,8 @@ class RelatorioService {
       try {
         doc.image(logoPath, 40, yLogo, { width: 60, height: 60 });
       } catch (error) {
-        console.log('Erro ao carregar logo:', error);
       }
     } else {
-      console.log('Logo não encontrada em:', logoPath);
     }
 
     // Títulos (centralizados, alinhados verticalmente com a logo)

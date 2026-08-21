@@ -1,12 +1,6 @@
-// ============================================
-// src/interfaces/ILocalidade.ts
-// ============================================
-
 export interface ILocalidade {
   id: number;
-  codigo?: number | null;
+  codigo?: number;
   nome_localidade: string;
-  descricao?: string | null;
-  created_at?: Date;
-  updated_at?: Date | null;
+  descricao?: string;
 }

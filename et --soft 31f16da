@@ -1,0 +1,18 @@
+[33m1d6a728[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fix: corrige tipos e prepara para deploy
+[33mb57a061[m fix: adiciona .npmrc para resolver problemas de dependências
+[33mb94da96[m feat: preparação para deploy e correção CORS
+[33m37df9ea[m chore: remove console.log de debug do RelatorioService
+[33m4536536[m fix: remove redirecionamento automático no interceptor do axios
+[33m13107a1[m feat: adiciona gestão completa de usuários com CRUD e perfil
+[33m53a4813[m feat: adiciona perfil do usuário e alteração de senha
+[33mb852ac8[m feat: adiciona CRUD completo de localidades com verificação de integridade
+[33m90a25dc[m feat: adiciona paginação na listagem de notificações
+[33m78bacc7[m feat: adiciona validação de datas futuras e endpoint PATCH para dt_recebimento
+[33md67d909[m fix: remove obrigatoriedade do campo dt_recebimento no backend
+[33m31f16da[m feat: melhora layout do PDF com logo, cabeçalho da prefeitura e formatação de datas
+[33m8a4f4d2[m feat: adiciona exportação de relatórios para Excel, PDF e CSV com filtros
+[33m2342b65[m feat: adiciona geolocalização com cálculo de distância e verificação de bloqueio
+[33mb084089[m feat: adiciona relatórios com filtros e estatísticas
+[33m665d16c[m feat: adiciona CRUD completo de notificações com filtros e bloqueio
+[33m017ffb0[m feat: adiciona NotificacaoRepository com CRUD e filtros
+[33mada4de8[m feat: estrutura inicial da API com autenticação e localidades

@@ -8,7 +8,7 @@ import { INotificacaoInput, INotificacaoFiltros } from '../interfaces/INotificac
 
 class NotificacaoController {
   /**
-   * Listar notificações com filtros
+   * Listar notificações com filtros e paginação
    */
   async listar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
@@ -24,10 +24,24 @@ class NotificacaoController {
         suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
         suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
         suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
+        page: req.query.page ? Number(req.query.page) : 1,
+        limit: req.query.limit ? Number(req.query.limit) : 10,
       };
 
-      const notificacoes = await NotificacaoRepository.listarComFiltros(filtros);
-      return res.status(200).json(notificacoes);
+      const { dados, total } = await NotificacaoRepository.listarComFiltros(filtros);
+      
+      const page = filtros.page || 1;
+      const limit = filtros.limit || 10;
+      
+      return res.status(200).json({
+        dados,
+        paginacao: {
+          total,
+          pagina: page,
+          limite: limit,
+          totalPaginas: Math.ceil(total / limit)
+        }
+      });
 
     } catch (error) {
       next(error);
@@ -63,7 +77,7 @@ class NotificacaoController {
     try {
       const dados: INotificacaoInput = req.body;
 
-      // Validações
+      // Validações básicas
       if (!dados.dt_primeiros_sintomas) {
         return res.status(400).json({ error: 'Data dos primeiros sintomas é obrigatória.' });
       }
@@ -79,14 +93,34 @@ class NotificacaoController {
       if (!dados.dt_notificacao) {
         return res.status(400).json({ error: 'Data da notificação é obrigatória.' });
       }
-      if (!dados.dt_recebimento) {
-        return res.status(400).json({ error: 'Data de recebimento é obrigatória.' });
+
+      // ✅ VALIDAÇÕES DE DATAS FUTURAS
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      if (new Date(dados.dt_primeiros_sintomas) > hoje) {
+        return res.status(400).json({ error: 'A data dos primeiros sintomas não pode ser futura.' });
+      }
+
+      if (new Date(dados.dt_notificacao) > hoje) {
+        return res.status(400).json({ error: 'A data da notificação não pode ser futura.' });
+      }
+
+      if (dados.dt_recebimento && new Date(dados.dt_recebimento) > hoje) {
+        return res.status(400).json({ error: 'A data de recebimento não pode ser futura.' });
+      }
+
+      // Validar: data da notificação não pode ser anterior aos primeiros sintomas
+      if (new Date(dados.dt_notificacao) < new Date(dados.dt_primeiros_sintomas)) {
+        return res.status(400).json({
+          error: 'A data da notificação não pode ser anterior aos primeiros sintomas.'
+        });
       }
 
       // Validar: pelo menos uma suspeita
       if (!dados.suspeita_dengue && !dados.suspeita_zika && !dados.suspeita_chikungunya) {
-        return res.status(400).json({ 
-          error: 'Selecione pelo menos uma suspeita (Dengue, Zika ou Chikungunya).' 
+        return res.status(400).json({
+          error: 'Selecione pelo menos uma suspeita (Dengue, Zika ou Chikungunya).'
         });
       }
 
@@ -128,14 +162,34 @@ class NotificacaoController {
       if (!dados.dt_notificacao) {
         return res.status(400).json({ error: 'Data da notificação é obrigatória.' });
       }
-      if (!dados.dt_recebimento) {
-        return res.status(400).json({ error: 'Data de recebimento é obrigatória.' });
+
+      // ✅ VALIDAÇÕES DE DATAS FUTURAS
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+
+      if (new Date(dados.dt_primeiros_sintomas) > hoje) {
+        return res.status(400).json({ error: 'A data dos primeiros sintomas não pode ser futura.' });
+      }
+
+      if (new Date(dados.dt_notificacao) > hoje) {
+        return res.status(400).json({ error: 'A data da notificação não pode ser futura.' });
+      }
+
+      if (dados.dt_recebimento && new Date(dados.dt_recebimento) > hoje) {
+        return res.status(400).json({ error: 'A data de recebimento não pode ser futura.' });
       }
 
       // Validar: pelo menos uma suspeita
       if (!dados.suspeita_dengue && !dados.suspeita_zika && !dados.suspeita_chikungunya) {
-        return res.status(400).json({ 
-          error: 'Selecione pelo menos uma suspeita (Dengue, Zika ou Chikungunya).' 
+        return res.status(400).json({
+          error: 'Selecione pelo menos uma suspeita (Dengue, Zika ou Chikungunya).'
+        });
+      }
+
+      // Validar: data da notificação não pode ser anterior aos primeiros sintomas
+      if (new Date(dados.dt_notificacao) < new Date(dados.dt_primeiros_sintomas)) {
+        return res.status(400).json({
+          error: 'A data da notificação não pode ser anterior aos primeiros sintomas.'
         });
       }
 
@@ -146,6 +200,50 @@ class NotificacaoController {
 
       const notificacaoAtualizada = await NotificacaoRepository.buscarPorId(id);
       return res.status(200).json(notificacaoAtualizada);
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Atualizar apenas a data de recebimento
+   */
+  async atualizarRecebimento(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'ID inválido.' });
+      }
+
+      const { dt_recebimento } = req.body;
+
+      // ✅ VALIDAÇÃO: data de recebimento não pode ser futura
+      if (dt_recebimento !== null && dt_recebimento !== undefined) {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const dataRecebimento = new Date(dt_recebimento);
+        
+        if (isNaN(dataRecebimento.getTime())) {
+          return res.status(400).json({ error: 'Data de recebimento inválida.' });
+        }
+        
+        if (dataRecebimento > hoje) {
+          return res.status(400).json({ error: 'A data de recebimento não pode ser futura.' });
+        }
+      }
+
+      const atualizado = await NotificacaoRepository.atualizarRecebimento(id, dt_recebimento || null);
+
+      if (!atualizado) {
+        return res.status(404).json({ error: 'Notificação não encontrada.' });
+      }
+
+      const notificacao = await NotificacaoRepository.buscarPorId(id);
+      return res.status(200).json({
+        message: 'Data de recebimento atualizada com sucesso.',
+        notificacao
+      });
 
     } catch (error) {
       next(error);
@@ -191,7 +289,7 @@ class NotificacaoController {
         return res.status(404).json({ error: 'Notificação não encontrada.' });
       }
 
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: 'Bloqueio registrado com sucesso.',
         notificacao_id: id,
         dt_bloqueio: new Date().toISOString().split('T')[0]
