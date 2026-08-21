@@ -1,5 +1,5 @@
 // ============================================
-// server.ts - COM ROTA DE TESTE /ping
+// server.ts - COM MIDDLEWARE DE LOG PARA DEBUG
 // ============================================
 
 import express from 'express';
@@ -32,6 +32,15 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
+
+// ============================================
+// 🟢 MIDDLEWARE DE LOG PARA DEBUG (COLOCAR AQUI!)
+// ============================================
+
+app.use((req, res, next) => {
+  console.log(`📥 Requisição recebida: ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // ============================================
 // ROTA DE TESTE DIRETA (/ping)
