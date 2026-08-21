@@ -1,14 +1,10 @@
-// ============================================
-// src/controllers/AuthController.ts
-// ============================================
-
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import UsuarioRepository from '../repositories/UsuarioRepository';
 import { IUsuarioInput, ILoginInput } from '../interfaces/IUsuario';
 import { gerarToken } from '../utils/jwtHelper';
 
-class AuthController {
+export class AuthController {
   async registrar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const { nome, email, senha, tipo }: IUsuarioInput = req.body;
@@ -30,6 +26,7 @@ class AuthController {
         });
       }
 
+      // ✅ CORRIGIDO
       const usuarioExistente = await UsuarioRepository.buscarPorEmail(email);
       if (usuarioExistente) {
         return res.status(409).json({ error: 'E-mail já cadastrado no sistema.' });
@@ -37,6 +34,7 @@ class AuthController {
 
       const senhaHash = await bcrypt.hash(senha, 10);
 
+      // ✅ CORRIGIDO
       const insertId = await UsuarioRepository.criar({
         nome,
         email,
@@ -44,6 +42,7 @@ class AuthController {
         tipo: tipo || 'USUARIO'
       });
 
+      // ✅ CORRIGIDO
       const novoUsuario = await UsuarioRepository.buscarPorId(insertId);
 
       return res.status(201).json(novoUsuario);
@@ -63,12 +62,12 @@ class AuthController {
         });
       }
 
+      // ✅ CORRIGIDO
       const usuario = await UsuarioRepository.buscarPorEmail(email);
       if (!usuario || !usuario.senha) {
         return res.status(401).json({ error: 'Credenciais inválidas.' });
       }
 
-      
       if (usuario.status === 'INATIVO' || usuario.status === 'BLOQUEADO') {
         return res.status(401).json({ 
           error: 'Usuário inativo ou bloqueado. Contate o administrador.' 
@@ -76,13 +75,11 @@ class AuthController {
       }
 
       const senhaValida = await bcrypt.compare(senha, usuario.senha);
-      
 
       if (!senhaValida) {
         return res.status(401).json({ error: 'Credenciais inválidas.' });
       }
 
-      
       const token = gerarToken({
         id: usuario.id!,
         email: usuario.email,
@@ -90,7 +87,6 @@ class AuthController {
         tipo: usuario.tipo || 'USUARIO'
       });
 
-      
       return res.status(200).json({
         usuario: {
           id: usuario.id,
@@ -107,5 +103,3 @@ class AuthController {
     }
   }
 }
-
-export default new AuthController();

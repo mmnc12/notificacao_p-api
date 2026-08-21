@@ -3,12 +3,12 @@
 // ============================================
 
 import { Router } from 'express';
-// ✅ CORRETO (sem .js)
-import AuthController from '../controllers/AuthController';
+import { AuthController } from '../controllers/AuthController';  // ← IMPORTAÇÃO NOMEADA
 
 const router = Router();
+const authController = new AuthController();  // ← AGORA FUNCIONA!
 
-router.post('/registrar', AuthController.registrar);
-router.post('/login', AuthController.login);
+router.post('/registrar', authController.registrar);
+router.post('/login', authController.login);
 
 export default router;
