@@ -1,151 +1,76 @@
-// ============================================
-// src/controllers/RelatorioController.ts
-// ============================================
+import { Request, Response } from 'express';
+import { RelatorioService } from '../services/RelatorioService';
 
-import { Request, Response, NextFunction } from 'express';
-import RelatorioService from '../services/RelatorioService';
-import { IRelatorioFiltros } from '../interfaces/IRelatorio';
+const relatorioService = new RelatorioService();
 
-class RelatorioController {
-  /**
-   * Gerar relatório com filtros (JSON)
-   */
-  async gerarRelatorio(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+export class RelatorioController {
+  static async getDados(req: Request, res: Response): Promise<Response> {
     try {
-      const filtros: IRelatorioFiltros = {
-        nome: req.query.nome as string,
-        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined,
-        status: req.query.status as 'ATIVO' | 'INATIVO',
-        ano: req.query.ano ? Number(req.query.ano) : undefined,
-        mes: req.query.mes ? Number(req.query.mes) : undefined,
-        dataInicio: req.query.dataInicio as string,
-        dataFim: req.query.dataFim as string,
-        resultado: req.query.resultado as 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO' | 'AGUARDANDO',
-        suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
-        suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
-        suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
-        page: req.query.page ? Number(req.query.page) : undefined,
-        limit: req.query.limit ? Number(req.query.limit) : undefined,
-        orderBy: req.query.orderBy as string,
-        orderDirection: req.query.orderDirection as 'ASC' | 'DESC'
-      };
+      const { localidade_id, data_inicio, data_fim } = req.query;
 
-      const dados = await RelatorioService.gerarRelatorio(filtros);
-      const estatisticas = await RelatorioService.obterEstatisticas(filtros);
+      const filters: any = {};
+      if (localidade_id) filters.localidade_id = Number(localidade_id);
+      if (data_inicio) filters.data_inicio = data_inicio;
+      if (data_fim) filters.data_fim = data_fim;
 
-      return res.status(200).json({
-        dados,
-        estatisticas,
-        total: dados.length,
-        filtros_aplicados: filtros
+      const dados = await relatorioService.getDadosRelatorio(filters);
+      const estatisticas = await relatorioService.getEstatisticas(filters);
+      const porLocalidade = await relatorioService.getPorLocalidade(filters);
+      const porMes = await relatorioService.getPorMes(filters);
+
+      return res.json({
+        success: true,
+        data: {
+          dados,
+          estatisticas,
+          porLocalidade,
+          porMes
+        }
       });
-
     } catch (error) {
-      next(error);
+      console.error('Erro ao buscar dados do relatório:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
+      });
     }
   }
 
-  /**
-   * Obter apenas estatísticas
-   */
-  async obterEstatisticas(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+  static async gerarExcel(req: Request, res: Response): Promise<void> {
     try {
-      const filtros: IRelatorioFiltros = {
-        dataInicio: req.query.dataInicio as string,
-        dataFim: req.query.dataFim as string,
-        ano: req.query.ano ? Number(req.query.ano) : undefined,
-        status: req.query.status as 'ATIVO' | 'INATIVO',
-        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined
-      };
+      const { localidade_id, data_inicio, data_fim } = req.query;
 
-      const estatisticas = await RelatorioService.obterEstatisticas(filtros);
-      return res.status(200).json(estatisticas);
+      const filters: any = {};
+      if (localidade_id) filters.localidade_id = Number(localidade_id);
+      if (data_inicio) filters.data_inicio = data_inicio;
+      if (data_fim) filters.data_fim = data_fim;
 
+      await relatorioService.gerarExcel(filters, res);
     } catch (error) {
-      next(error);
+      console.error('Erro ao gerar relatório Excel:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
+      });
     }
   }
 
-  /**
-   * Exportar relatório para Excel
-   */
-  async exportarExcel(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async gerarPDF(req: Request, res: Response): Promise<void> {
     try {
-      const filtros: IRelatorioFiltros = {
-        nome: req.query.nome as string,
-        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined,
-        status: req.query.status as 'ATIVO' | 'INATIVO',
-        ano: req.query.ano ? Number(req.query.ano) : undefined,
-        mes: req.query.mes ? Number(req.query.mes) : undefined,
-        dataInicio: req.query.dataInicio as string,
-        dataFim: req.query.dataFim as string,
-        resultado: req.query.resultado as 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO' | 'AGUARDANDO',
-        suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
-        suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
-        suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
-      };
+      const { localidade_id, data_inicio, data_fim } = req.query;
 
-      const dados = await RelatorioService.gerarRelatorio(filtros);
-      await RelatorioService.exportarExcel(dados, res);
+      const filters: any = {};
+      if (localidade_id) filters.localidade_id = Number(localidade_id);
+      if (data_inicio) filters.data_inicio = data_inicio;
+      if (data_fim) filters.data_fim = data_fim;
 
+      await relatorioService.gerarPDF(filters, res);
     } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Exportar relatório para PDF
-   */
-  async exportarPDF(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const filtros: IRelatorioFiltros = {
-        nome: req.query.nome as string,
-        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined,
-        status: req.query.status as 'ATIVO' | 'INATIVO',
-        ano: req.query.ano ? Number(req.query.ano) : undefined,
-        mes: req.query.mes ? Number(req.query.mes) : undefined,
-        dataInicio: req.query.dataInicio as string,
-        dataFim: req.query.dataFim as string,
-        resultado: req.query.resultado as 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO' | 'AGUARDANDO',
-        suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
-        suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
-        suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
-      };
-
-      const dados = await RelatorioService.gerarRelatorio(filtros);
-      await RelatorioService.exportarPDF(dados, res);
-
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Exportar relatório para CSV
-   */
-  async exportarCSV(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const filtros: IRelatorioFiltros = {
-        nome: req.query.nome as string,
-        localidade_id: req.query.localidade_id ? Number(req.query.localidade_id) : undefined,
-        status: req.query.status as 'ATIVO' | 'INATIVO',
-        ano: req.query.ano ? Number(req.query.ano) : undefined,
-        mes: req.query.mes ? Number(req.query.mes) : undefined,
-        dataInicio: req.query.dataInicio as string,
-        dataFim: req.query.dataFim as string,
-        resultado: req.query.resultado as 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO' | 'AGUARDANDO',
-        suspeita_dengue: req.query.suspeita_dengue === 'true' ? true : req.query.suspeita_dengue === 'false' ? false : undefined,
-        suspeita_zika: req.query.suspeita_zika === 'true' ? true : req.query.suspeita_zika === 'false' ? false : undefined,
-        suspeita_chikungunya: req.query.suspeita_chikungunya === 'true' ? true : req.query.suspeita_chikungunya === 'false' ? false : undefined,
-      };
-
-      const dados = await RelatorioService.gerarRelatorio(filtros);
-      await RelatorioService.exportarCSV(dados, res);
-
-    } catch (error) {
-      next(error);
+      console.error('Erro ao gerar relatório PDF:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor'
+      });
     }
   }
 }
-
-export default new RelatorioController();

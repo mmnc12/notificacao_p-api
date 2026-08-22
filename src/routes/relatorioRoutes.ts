@@ -3,7 +3,7 @@
 // ============================================
 
 import { Router } from 'express';
-import RelatorioController from '../controllers/RelatorioController';
+import { RelatorioController } from '../controllers/RelatorioController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -11,11 +11,17 @@ const router = Router();
 // 🔒 Todas as rotas requerem autenticação
 router.use(authMiddleware);
 
-// Rotas de relatórios
-router.get('/', RelatorioController.gerarRelatorio);
-router.get('/estatisticas', RelatorioController.obterEstatisticas);
-router.get('/excel', RelatorioController.exportarExcel);
-router.get('/pdf', RelatorioController.exportarPDF);
-router.get('/csv', RelatorioController.exportarCSV);
+// ============================================
+// ROTAS DE RELATÓRIOS
+// ============================================
+
+// 📊 Dados do relatório (inclui estatísticas, localidades, etc.)
+router.get('/dados', RelatorioController.getDados);
+
+// 📄 Exportar para Excel
+router.get('/excel', RelatorioController.gerarExcel);
+
+// 📄 Exportar para PDF
+router.get('/pdf', RelatorioController.gerarPDF);
 
 export default router;
