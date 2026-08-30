@@ -29,10 +29,10 @@ class NotificacaoController {
       };
 
       const { dados, total } = await NotificacaoRepository.listarComFiltros(filtros);
-      
+
       const page = filtros.page || 1;
       const limit = filtros.limit || 10;
-      
+
       return res.status(200).json({
         dados,
         paginacao: {
@@ -223,11 +223,11 @@ class NotificacaoController {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
         const dataRecebimento = new Date(dt_recebimento);
-        
+
         if (isNaN(dataRecebimento.getTime())) {
           return res.status(400).json({ error: 'Data de recebimento inválida.' });
         }
-        
+
         if (dataRecebimento > hoje) {
           return res.status(400).json({ error: 'A data de recebimento não pode ser futura.' });
         }

@@ -90,8 +90,7 @@ class NotificacaoRepository {
     // ============================================
     // ✅ CONTAR TOTAL DE REGISTROS (SEM PAGINAÇÃO)
     // ============================================
-    
-    // Criar uma cópia da query para contar
+
     let countQuery = `
       SELECT COUNT(*) as total
       FROM notificacoes n
@@ -99,8 +98,6 @@ class NotificacaoRepository {
       WHERE 1=1
     `;
 
-    // Reaplicar os mesmos filtros para a contagem
-    // (usamos os mesmos params, pois os filtros são os mesmos)
     if (filtros.nome) {
       countQuery += ` AND n.nome_paciente LIKE ?`;
     }
@@ -136,7 +133,6 @@ class NotificacaoRepository {
       countQuery += ` AND n.suspeita_chikungunya = ?`;
     }
 
-    // Executar a contagem
     const [countRows] = await pool.query<RowDataPacket[]>(countQuery, params);
     const total = countRows[0].total;
 
@@ -152,10 +148,10 @@ class NotificacaoRepository {
     params.push(limit, offset);
 
     const [rows] = await pool.query<RowDataPacket[]>(query, params);
-    
-    return { 
-      dados: rows as INotificacao[], 
-      total 
+
+    return {
+      dados: rows as INotificacao[],
+      total
     };
   }
 
@@ -194,13 +190,14 @@ class NotificacaoRepository {
         link_google_earth,
         dt_notificacao,
         dt_recebimento,
+        status,
         suspeita_dengue,
         suspeita_zika,
         suspeita_chikungunya,
         resultado,
         dt_resultado,
         observacoes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -215,6 +212,7 @@ class NotificacaoRepository {
       dados.link_google_earth || null,
       dados.dt_notificacao,
       dados.dt_recebimento || null,
+      dados.status || 'ATIVO',  // ✅ ADICIONADO
       dados.suspeita_dengue,
       dados.suspeita_zika,
       dados.suspeita_chikungunya,
@@ -244,6 +242,7 @@ class NotificacaoRepository {
         link_google_earth = ?,
         dt_notificacao = ?,
         dt_recebimento = ?,
+        status = ?,
         suspeita_dengue = ?,
         suspeita_zika = ?,
         suspeita_chikungunya = ?,
@@ -265,6 +264,7 @@ class NotificacaoRepository {
       dados.link_google_earth || null,
       dados.dt_notificacao,
       dados.dt_recebimento || null,
+      dados.status || 'ATIVO',  // ✅ ADICIONADO
       dados.suspeita_dengue,
       dados.suspeita_zika,
       dados.suspeita_chikungunya,

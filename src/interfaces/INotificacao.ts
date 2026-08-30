@@ -41,6 +41,7 @@ export interface INotificacaoInput {
   link_google_earth?: string;
   dt_notificacao: string;
   dt_recebimento?: string | null;
+  status?: 'ATIVO' | 'INATIVO';  // ✅ ADICIONADO (opcional, calculado pelo backend)
   suspeita_dengue: boolean;
   suspeita_zika: boolean;
   suspeita_chikungunya: boolean;
