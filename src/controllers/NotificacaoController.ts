@@ -8,6 +8,24 @@ import { INotificacaoInput, INotificacaoFiltros } from '../interfaces/INotificac
 
 class NotificacaoController {
   /**
+   * ✅ Função auxiliar para calcular o status baseado nos dias
+   */
+  private calcularStatus(dataSintomas: string): 'ATIVO' | 'INATIVO' {
+    if (!dataSintomas) return 'INATIVO';
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    const data = new Date(dataSintomas + 'T00:00:00-03:00');
+    if (isNaN(data.getTime())) return 'ATIVO';
+    
+    const diffTime = Math.abs(hoje.getTime() - data.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 15 ? 'INATIVO' : 'ATIVO';
+  }
+
+  /**
    * Listar notificações com filtros e paginação
    */
   async listar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -124,6 +142,9 @@ class NotificacaoController {
         });
       }
 
+      // ✅ CALCULAR O STATUS AUTOMATICAMENTE
+      dados.status = this.calcularStatus(dados.dt_primeiros_sintomas);
+
       const insertId = await NotificacaoRepository.criar(dados);
       const novaNotificacao = await NotificacaoRepository.buscarPorId(insertId);
 
@@ -193,6 +214,9 @@ class NotificacaoController {
         });
       }
 
+      // ✅ CALCULAR O STATUS AUTOMATICAMENTE
+      dados.status = this.calcularStatus(dados.dt_primeiros_sintomas);
+
       const atualizado = await NotificacaoRepository.atualizar(id, dados);
       if (!atualizado) {
         return res.status(404).json({ error: 'Notificação não encontrada.' });
@@ -218,7 +242,6 @@ class NotificacaoController {
 
       const { dt_recebimento } = req.body;
 
-      // ✅ VALIDAÇÃO: data de recebimento não pode ser futura
       if (dt_recebimento !== null && dt_recebimento !== undefined) {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
