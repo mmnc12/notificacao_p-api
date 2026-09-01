@@ -71,21 +71,19 @@ class NotificacaoController {
   }
 
   /**
-   * ✅ Função auxiliar para calcular status
+   * ✅ Função para calcular dias entre duas datas
    */
-  private calcularStatus(dataSintomas: string): 'ATIVO' | 'INATIVO' {
-    if (!dataSintomas) return 'INATIVO';
-    
+  private calcularDias(dataSintomas: string): number {
+    if (!dataSintomas) return 999;
+
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    
+
     const data = new Date(dataSintomas + 'T00:00:00-03:00');
-    if (isNaN(data.getTime())) return 'ATIVO';
-    
+    if (isNaN(data.getTime())) return 0;
+
     const diffTime = Math.abs(hoje.getTime() - data.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays > 15 ? 'INATIVO' : 'ATIVO';
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   /**
@@ -143,7 +141,8 @@ class NotificacaoController {
       }
 
       // ✅ CALCULAR O STATUS
-      dados.status = this.calcularStatus(dados.dt_primeiros_sintomas);
+      const dias = this.calcularDias(dados.dt_primeiros_sintomas);
+      dados.status = dias > 15 ? 'INATIVO' : 'ATIVO';
 
       const insertId = await NotificacaoRepository.criar(dados);
       const novaNotificacao = await NotificacaoRepository.buscarPorId(insertId);
@@ -216,7 +215,8 @@ class NotificacaoController {
       }
 
       // ✅ CALCULAR O STATUS
-      dados.status = this.calcularStatus(dados.dt_primeiros_sintomas);
+      const dias = this.calcularDias(dados.dt_primeiros_sintomas);
+      dados.status = dias > 15 ? 'INATIVO' : 'ATIVO';
 
       const atualizado = await NotificacaoRepository.atualizar(id, dados);
       if (!atualizado) {
