@@ -16,6 +16,7 @@ import notificacaoRoutes from './routes/notificacaoRoutes';
 import relatorioRoutes from './routes/relatorioRoutes';
 import geolocalizacaoRoutes from './routes/geolocalizacaoRoutes';
 import usuarioRoutes from './routes/usuarioRoutes';
+import './jobs/atualizarStatus';
 
 dotenv.config();
 
