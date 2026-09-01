@@ -177,6 +177,8 @@ class NotificacaoRepository {
    * Criar nova notificação
    */
   async criar(dados: INotificacaoInput): Promise<number> {
+    console.log('🔍 [REPOSITORY CRIAR] Iniciando...');
+    console.log('📥 [REPOSITORY CRIAR] Dados:', JSON.stringify(dados));
     const query = `
       INSERT INTO notificacoes (
         dt_primeiros_sintomas,

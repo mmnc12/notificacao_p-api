@@ -92,6 +92,7 @@ class NotificacaoController {
   async criar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const dados: INotificacaoInput = req.body;
+       console.log('📥 [CRIAR] Dados recebidos:', JSON.stringify(dados));
 
       // Validações básicas
       if (!dados.dt_primeiros_sintomas) {
@@ -140,17 +141,24 @@ class NotificacaoController {
         });
       }
 
+      console.log('✅ [CRIAR] Validações passadas');
+
       // ✅ CALCULAR O STATUS
       const dias = this.calcularDias(dados.dt_primeiros_sintomas);
+      console.log('📊 [CRIAR] Dias:', dias);
       dados.status = dias > 15 ? 'INATIVO' : 'ATIVO';
+      console.log('📊 [CRIAR] Status:', dados.status);
 
       const insertId = await NotificacaoRepository.criar(dados);
+      console.log('✅ [CRIAR] Insert ID:', insertId);
       const novaNotificacao = await NotificacaoRepository.buscarPorId(insertId);
+      console.log('✅ [CRIAR] Notificação criada:', JSON.stringify(novaNotificacao));
 
       return res.status(201).json(novaNotificacao);
 
     } catch (error) {
       console.error('❌ Erro no criar:', error);
+      console.error('❌ [CRIAR] Stack:', error instanceof Error ? error.stack : 'Sem stack');
       next(error);
     }
   }
