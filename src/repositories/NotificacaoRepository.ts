@@ -8,6 +8,24 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2';
 
 class NotificacaoRepository {
   /**
+   * ✅ Função para calcular status baseado nos dias (dentro do Repository)
+   */
+  private calcularStatus(dataSintomas: string): 'ATIVO' | 'INATIVO' {
+    if (!dataSintomas) return 'INATIVO';
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const data = new Date(dataSintomas + 'T00:00:00-03:00');
+    if (isNaN(data.getTime())) return 'ATIVO';
+
+    const diffTime = Math.abs(hoje.getTime() - data.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays > 15 ? 'INATIVO' : 'ATIVO';
+  }
+
+  /**
    * Listar notificações com filtros e paginação
    */
   async listarComFiltros(filtros: INotificacaoFiltros): Promise<{ dados: INotificacao[]; total: number }> {
@@ -21,37 +39,31 @@ class NotificacaoRepository {
     `;
     const params: any[] = [];
 
-    // Filtro por nome do paciente
     if (filtros.nome) {
       query += ` AND n.nome_paciente LIKE ?`;
       params.push(`%${filtros.nome}%`);
     }
 
-    // Filtro por localidade
     if (filtros.localidade_id) {
       query += ` AND n.localidade_id = ?`;
       params.push(filtros.localidade_id);
     }
 
-    // Filtro por status
     if (filtros.status) {
       query += ` AND n.status = ?`;
       params.push(filtros.status);
     }
 
-    // Filtro por ano
     if (filtros.ano) {
       query += ` AND YEAR(n.dt_notificacao) = ?`;
       params.push(filtros.ano);
     }
 
-    // Filtro por mês
     if (filtros.mes) {
       query += ` AND MONTH(n.dt_notificacao) = ?`;
       params.push(filtros.mes);
     }
 
-    // Filtro por período
     if (filtros.dataInicio && filtros.dataFim) {
       query += ` AND n.dt_notificacao BETWEEN ? AND ?`;
       params.push(filtros.dataInicio, filtros.dataFim);
@@ -63,34 +75,27 @@ class NotificacaoRepository {
       params.push(filtros.dataFim);
     }
 
-    // Filtro por resultado
     if (filtros.resultado) {
       query += ` AND n.resultado = ?`;
       params.push(filtros.resultado);
     }
 
-    // Filtro por suspeita de dengue
     if (filtros.suspeita_dengue !== undefined) {
       query += ` AND n.suspeita_dengue = ?`;
       params.push(filtros.suspeita_dengue);
     }
 
-    // Filtro por suspeita de zika
     if (filtros.suspeita_zika !== undefined) {
       query += ` AND n.suspeita_zika = ?`;
       params.push(filtros.suspeita_zika);
     }
 
-    // Filtro por suspeita de chikungunya
     if (filtros.suspeita_chikungunya !== undefined) {
       query += ` AND n.suspeita_chikungunya = ?`;
       params.push(filtros.suspeita_chikungunya);
     }
 
-    // ============================================
-    // ✅ CONTAR TOTAL DE REGISTROS (SEM PAGINAÇÃO)
-    // ============================================
-
+    // Contagem
     let countQuery = `
       SELECT COUNT(*) as total
       FROM notificacoes n
@@ -98,47 +103,21 @@ class NotificacaoRepository {
       WHERE 1=1
     `;
 
-    if (filtros.nome) {
-      countQuery += ` AND n.nome_paciente LIKE ?`;
-    }
-    if (filtros.localidade_id) {
-      countQuery += ` AND n.localidade_id = ?`;
-    }
-    if (filtros.status) {
-      countQuery += ` AND n.status = ?`;
-    }
-    if (filtros.ano) {
-      countQuery += ` AND YEAR(n.dt_notificacao) = ?`;
-    }
-    if (filtros.mes) {
-      countQuery += ` AND MONTH(n.dt_notificacao) = ?`;
-    }
-    if (filtros.dataInicio && filtros.dataFim) {
-      countQuery += ` AND n.dt_notificacao BETWEEN ? AND ?`;
-    } else if (filtros.dataInicio) {
-      countQuery += ` AND n.dt_notificacao >= ?`;
-    } else if (filtros.dataFim) {
-      countQuery += ` AND n.dt_notificacao <= ?`;
-    }
-    if (filtros.resultado) {
-      countQuery += ` AND n.resultado = ?`;
-    }
-    if (filtros.suspeita_dengue !== undefined) {
-      countQuery += ` AND n.suspeita_dengue = ?`;
-    }
-    if (filtros.suspeita_zika !== undefined) {
-      countQuery += ` AND n.suspeita_zika = ?`;
-    }
-    if (filtros.suspeita_chikungunya !== undefined) {
-      countQuery += ` AND n.suspeita_chikungunya = ?`;
-    }
+    if (filtros.nome) countQuery += ` AND n.nome_paciente LIKE ?`;
+    if (filtros.localidade_id) countQuery += ` AND n.localidade_id = ?`;
+    if (filtros.status) countQuery += ` AND n.status = ?`;
+    if (filtros.ano) countQuery += ` AND YEAR(n.dt_notificacao) = ?`;
+    if (filtros.mes) countQuery += ` AND MONTH(n.dt_notificacao) = ?`;
+    if (filtros.dataInicio && filtros.dataFim) countQuery += ` AND n.dt_notificacao BETWEEN ? AND ?`;
+    else if (filtros.dataInicio) countQuery += ` AND n.dt_notificacao >= ?`;
+    else if (filtros.dataFim) countQuery += ` AND n.dt_notificacao <= ?`;
+    if (filtros.resultado) countQuery += ` AND n.resultado = ?`;
+    if (filtros.suspeita_dengue !== undefined) countQuery += ` AND n.suspeita_dengue = ?`;
+    if (filtros.suspeita_zika !== undefined) countQuery += ` AND n.suspeita_zika = ?`;
+    if (filtros.suspeita_chikungunya !== undefined) countQuery += ` AND n.suspeita_chikungunya = ?`;
 
     const [countRows] = await pool.query<RowDataPacket[]>(countQuery, params);
     const total = countRows[0].total;
-
-    // ============================================
-    // ✅ APLICAR PAGINAÇÃO
-    // ============================================
 
     const page = filtros.page || 1;
     const limit = filtros.limit || 10;
@@ -177,8 +156,9 @@ class NotificacaoRepository {
    * Criar nova notificação
    */
   async criar(dados: INotificacaoInput): Promise<number> {
-    console.log('🔍 [REPOSITORY CRIAR] Iniciando...');
-    console.log('📥 [REPOSITORY CRIAR] Dados:', JSON.stringify(dados));
+    // ✅ CALCULAR O STATUS AQUI
+    const status = this.calcularStatus(dados.dt_primeiros_sintomas);
+
     const query = `
       INSERT INTO notificacoes (
         dt_primeiros_sintomas,
@@ -214,7 +194,7 @@ class NotificacaoRepository {
       dados.link_google_earth || null,
       dados.dt_notificacao,
       dados.dt_recebimento || null,
-      dados.status || 'ATIVO',  // ✅ ADICIONADO
+      status,
       dados.suspeita_dengue,
       dados.suspeita_zika,
       dados.suspeita_chikungunya,
@@ -231,6 +211,9 @@ class NotificacaoRepository {
    * Atualizar notificação
    */
   async atualizar(id: number, dados: Partial<INotificacaoInput>): Promise<boolean> {
+    // ✅ CALCULAR O STATUS AQUI
+    const status = this.calcularStatus(dados.dt_primeiros_sintomas || '');
+
     const query = `
       UPDATE notificacoes SET
         dt_primeiros_sintomas = ?,
@@ -266,7 +249,7 @@ class NotificacaoRepository {
       dados.link_google_earth || null,
       dados.dt_notificacao,
       dados.dt_recebimento || null,
-      dados.status || 'ATIVO',  // ✅ ADICIONADO
+      status,
       dados.suspeita_dengue,
       dados.suspeita_zika,
       dados.suspeita_chikungunya,

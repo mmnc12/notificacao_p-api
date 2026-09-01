@@ -44,6 +44,7 @@ class NotificacaoController {
       });
 
     } catch (error) {
+      console.error('❌ [LISTAR] Erro:', error);
       next(error);
     }
   }
@@ -66,24 +67,9 @@ class NotificacaoController {
       return res.status(200).json(notificacao);
 
     } catch (error) {
+      console.error('❌ [BUSCAR] Erro:', error);
       next(error);
     }
-  }
-
-  /**
-   * ✅ Função para calcular dias entre duas datas
-   */
-  private calcularDias(dataSintomas: string): number {
-    if (!dataSintomas) return 999;
-
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    const data = new Date(dataSintomas + 'T00:00:00-03:00');
-    if (isNaN(data.getTime())) return 0;
-
-    const diffTime = Math.abs(hoje.getTime() - data.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   /**
@@ -92,7 +78,6 @@ class NotificacaoController {
   async criar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const dados: INotificacaoInput = req.body;
-       console.log('📥 [CRIAR] Dados recebidos:', JSON.stringify(dados));
 
       // Validações básicas
       if (!dados.dt_primeiros_sintomas) {
@@ -141,24 +126,16 @@ class NotificacaoController {
         });
       }
 
-      console.log('✅ [CRIAR] Validações passadas');
-
-      // ✅ CALCULAR O STATUS
-      const dias = this.calcularDias(dados.dt_primeiros_sintomas);
-      console.log('📊 [CRIAR] Dias:', dias);
-      dados.status = dias > 15 ? 'INATIVO' : 'ATIVO';
-      console.log('📊 [CRIAR] Status:', dados.status);
+      // ✅ O status será calculado dentro do Repository
+      // Não precisa fazer nada aqui
 
       const insertId = await NotificacaoRepository.criar(dados);
-      console.log('✅ [CRIAR] Insert ID:', insertId);
       const novaNotificacao = await NotificacaoRepository.buscarPorId(insertId);
-      console.log('✅ [CRIAR] Notificação criada:', JSON.stringify(novaNotificacao));
 
       return res.status(201).json(novaNotificacao);
 
     } catch (error) {
-      console.error('❌ Erro no criar:', error);
-      console.error('❌ [CRIAR] Stack:', error instanceof Error ? error.stack : 'Sem stack');
+      console.error('❌ [CRIAR] Erro:', error);
       next(error);
     }
   }
@@ -222,9 +199,8 @@ class NotificacaoController {
         });
       }
 
-      // ✅ CALCULAR O STATUS
-      const dias = this.calcularDias(dados.dt_primeiros_sintomas);
-      dados.status = dias > 15 ? 'INATIVO' : 'ATIVO';
+      // ✅ O status será calculado dentro do Repository
+      // Não precisa fazer nada aqui
 
       const atualizado = await NotificacaoRepository.atualizar(id, dados);
       if (!atualizado) {
@@ -235,7 +211,7 @@ class NotificacaoController {
       return res.status(200).json(notificacaoAtualizada);
 
     } catch (error) {
-      console.error('❌ Erro no atualizar:', error);
+      console.error('❌ [ATUALIZAR] Erro:', error);
       next(error);
     }
   }
@@ -279,7 +255,7 @@ class NotificacaoController {
       });
 
     } catch (error) {
-      console.error('❌ Erro no atualizarRecebimento:', error);
+      console.error('❌ [ATUALIZAR RECEBIMENTO] Erro:', error);
       next(error);
     }
   }
@@ -302,7 +278,7 @@ class NotificacaoController {
       return res.status(200).json({ message: 'Notificação excluída com sucesso.' });
 
     } catch (error) {
-      console.error('❌ Erro no deletar:', error);
+      console.error('❌ [DELETAR] Erro:', error);
       next(error);
     }
   }
@@ -331,7 +307,7 @@ class NotificacaoController {
       });
 
     } catch (error) {
-      console.error('❌ Erro no registrarBloqueio:', error);
+      console.error('❌ [REGISTRAR BLOQUEIO] Erro:', error);
       next(error);
     }
   }
