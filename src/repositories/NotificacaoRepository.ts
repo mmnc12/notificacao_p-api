@@ -22,7 +22,7 @@ class NotificacaoRepository {
     const diffTime = Math.abs(hoje.getTime() - data.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    return diffDays > 15 ? 'INATIVO' : 'ATIVO';
+    return diffDays >= 15 ? 'INATIVO' : 'ATIVO';
   }
 
   /**
