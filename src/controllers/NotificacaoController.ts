@@ -8,24 +8,6 @@ import { INotificacaoInput, INotificacaoFiltros } from '../interfaces/INotificac
 
 class NotificacaoController {
   /**
-   * ✅ Função auxiliar para calcular o status baseado nos dias
-   */
-  private calcularStatus(dataSintomas: string): 'ATIVO' | 'INATIVO' {
-    if (!dataSintomas) return 'INATIVO';
-    
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    
-    const data = new Date(dataSintomas + 'T00:00:00-03:00');
-    if (isNaN(data.getTime())) return 'ATIVO';
-    
-    const diffTime = Math.abs(hoje.getTime() - data.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays > 15 ? 'INATIVO' : 'ATIVO';
-  }
-
-  /**
    * Listar notificações com filtros e paginação
    */
   async listar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -89,6 +71,24 @@ class NotificacaoController {
   }
 
   /**
+   * ✅ Função auxiliar para calcular status
+   */
+  private calcularStatus(dataSintomas: string): 'ATIVO' | 'INATIVO' {
+    if (!dataSintomas) return 'INATIVO';
+    
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    const data = new Date(dataSintomas + 'T00:00:00-03:00');
+    if (isNaN(data.getTime())) return 'ATIVO';
+    
+    const diffTime = Math.abs(hoje.getTime() - data.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 15 ? 'INATIVO' : 'ATIVO';
+  }
+
+  /**
    * Criar nova notificação
    */
   async criar(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
@@ -142,7 +142,7 @@ class NotificacaoController {
         });
       }
 
-      // ✅ CALCULAR O STATUS AUTOMATICAMENTE
+      // ✅ CALCULAR O STATUS
       dados.status = this.calcularStatus(dados.dt_primeiros_sintomas);
 
       const insertId = await NotificacaoRepository.criar(dados);
@@ -151,6 +151,7 @@ class NotificacaoController {
       return res.status(201).json(novaNotificacao);
 
     } catch (error) {
+      console.error('❌ Erro no criar:', error);
       next(error);
     }
   }
@@ -214,7 +215,7 @@ class NotificacaoController {
         });
       }
 
-      // ✅ CALCULAR O STATUS AUTOMATICAMENTE
+      // ✅ CALCULAR O STATUS
       dados.status = this.calcularStatus(dados.dt_primeiros_sintomas);
 
       const atualizado = await NotificacaoRepository.atualizar(id, dados);
@@ -226,6 +227,7 @@ class NotificacaoController {
       return res.status(200).json(notificacaoAtualizada);
 
     } catch (error) {
+      console.error('❌ Erro no atualizar:', error);
       next(error);
     }
   }
@@ -269,6 +271,7 @@ class NotificacaoController {
       });
 
     } catch (error) {
+      console.error('❌ Erro no atualizarRecebimento:', error);
       next(error);
     }
   }
@@ -291,6 +294,7 @@ class NotificacaoController {
       return res.status(200).json({ message: 'Notificação excluída com sucesso.' });
 
     } catch (error) {
+      console.error('❌ Erro no deletar:', error);
       next(error);
     }
   }
@@ -319,6 +323,7 @@ class NotificacaoController {
       });
 
     } catch (error) {
+      console.error('❌ Erro no registrarBloqueio:', error);
       next(error);
     }
   }
