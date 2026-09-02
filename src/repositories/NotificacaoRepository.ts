@@ -16,11 +16,24 @@ class NotificacaoRepository {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    const data = new Date(dataSintomas + 'T00:00:00-03:00');
-    if (isNaN(data.getTime())) return 0;
+    // Verificar se a data está no formato ISO com T
+    let dataStr = dataSintomas;
+    if (dataStr.includes('T')) {
+      dataStr = dataStr.split('T')[0];
+    }
+
+    const partes = dataStr.split('-');
+    if (partes.length !== 3) return 0;
+
+    const data = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    data.setHours(0, 0, 0, 0);
 
     const diffTime = Math.abs(hoje.getTime() - data.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    console.log(`📊 [CALCULAR DIAS] Data: ${dataSintomas} -> ${diffDays} dias`);
+
+    return diffDays;
   }
 
   /**
