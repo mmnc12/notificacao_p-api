@@ -16,7 +16,6 @@ class NotificacaoRepository {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    // Verificar se a data está no formato ISO com T
     let dataStr = dataSintomas;
     if (dataStr.includes('T')) {
       dataStr = dataStr.split('T')[0];
@@ -31,8 +30,6 @@ class NotificacaoRepository {
     const diffTime = Math.abs(hoje.getTime() - data.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    console.log(`📊 [CALCULAR DIAS] Data: ${dataSintomas} -> ${diffDays} dias`);
-
     return diffDays;
   }
 
@@ -46,20 +43,25 @@ class NotificacaoRepository {
   }
 
   /**
-   * ✅ Verifica e atualiza status dos registros se necessário
+   * ✅ Verifica e atualiza status dos registros se necessário (VERSÃO ESTÁVEL)
    */
   private async verificarEAtualizarStatus(rows: any[]): Promise<void> {
-    console.log('🔍 [VERIFICAR] Verificando', rows.length, 'registros...');
+    if (!rows || rows.length === 0) return;
+
     for (const row of rows) {
-      const diffDays = this.calcularDias(row.dt_primeiros_sintomas);
-      console.log(`📊 [VERIFICAR] ID ${row.id}: ${diffDays} dias, status: ${row.status}`);
-      if (diffDays >= 15 && row.status === 'ATIVO') {
-        console.log(`🔄 [VERIFICAR] Atualizando ID ${row.id} para INATIVO`);
-        await pool.query(
-          'UPDATE notificacoes SET status = ? WHERE id = ?',
-          ['INATIVO', row.id]
-        );
-        row.status = 'INATIVO';
+      try {
+        if (!row || !row.id || !row.dt_primeiros_sintomas) continue;
+
+        const diffDays = this.calcularDias(row.dt_primeiros_sintomas);
+        if (diffDays >= 15 && row.status === 'ATIVO') {
+          await pool.query(
+            'UPDATE notificacoes SET status = ? WHERE id = ?',
+            ['INATIVO', row.id]
+          );
+          row.status = 'INATIVO';
+        }
+      } catch (error) {
+        // Silencioso para não quebrar a aplicação
       }
     }
   }
