@@ -36,9 +36,12 @@ class NotificacaoRepository {
    * ✅ Verifica e atualiza status dos registros se necessário
    */
   private async verificarEAtualizarStatus(rows: any[]): Promise<void> {
+    console.log('🔍 [VERIFICAR] Verificando', rows.length, 'registros...');
     for (const row of rows) {
       const diffDays = this.calcularDias(row.dt_primeiros_sintomas);
+      console.log(`📊 [VERIFICAR] ID ${row.id}: ${diffDays} dias, status: ${row.status}`);
       if (diffDays >= 15 && row.status === 'ATIVO') {
+        console.log(`🔄 [VERIFICAR] Atualizando ID ${row.id} para INATIVO`);
         await pool.query(
           'UPDATE notificacoes SET status = ? WHERE id = ?',
           ['INATIVO', row.id]
