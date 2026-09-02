@@ -8,21 +8,44 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2';
 
 class NotificacaoRepository {
   /**
-   * ✅ Função para calcular status baseado nos dias (dentro do Repository)
+   * ✅ Função para calcular dias entre duas datas
    */
-  private calcularStatus(dataSintomas: string): 'ATIVO' | 'INATIVO' {
-    if (!dataSintomas) return 'INATIVO';
+  private calcularDias(dataSintomas: string): number {
+    if (!dataSintomas) return 999;
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
     const data = new Date(dataSintomas + 'T00:00:00-03:00');
-    if (isNaN(data.getTime())) return 'ATIVO';
+    if (isNaN(data.getTime())) return 0;
 
     const diffTime = Math.abs(hoje.getTime() - data.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
 
+  /**
+   * ✅ Função para calcular status baseado nos dias
+   */
+  private calcularStatus(dataSintomas: string): 'ATIVO' | 'INATIVO' {
+    if (!dataSintomas) return 'INATIVO';
+    const diffDays = this.calcularDias(dataSintomas);
     return diffDays >= 15 ? 'INATIVO' : 'ATIVO';
+  }
+
+  /**
+   * ✅ Verifica e atualiza status dos registros se necessário
+   */
+  private async verificarEAtualizarStatus(rows: any[]): Promise<void> {
+    for (const row of rows) {
+      const diffDays = this.calcularDias(row.dt_primeiros_sintomas);
+      if (diffDays >= 15 && row.status === 'ATIVO') {
+        await pool.query(
+          'UPDATE notificacoes SET status = ? WHERE id = ?',
+          ['INATIVO', row.id]
+        );
+        row.status = 'INATIVO';
+      }
+    }
   }
 
   /**
@@ -128,6 +151,9 @@ class NotificacaoRepository {
 
     const [rows] = await pool.query<RowDataPacket[]>(query, params);
 
+    // ✅ VERIFICAR E ATUALIZAR STATUS DOS REGISTROS EXIBIDOS
+    await this.verificarEAtualizarStatus(rows);
+
     return {
       dados: rows as INotificacao[],
       total
@@ -149,6 +175,10 @@ class NotificacaoRepository {
     const [rows] = await pool.query<RowDataPacket[]>(query, [id]);
 
     if (rows.length === 0) return null;
+
+    // ✅ VERIFICAR E ATUALIZAR STATUS DO REGISTRO
+    await this.verificarEAtualizarStatus(rows);
+
     return rows[0] as INotificacao;
   }
 
@@ -156,7 +186,6 @@ class NotificacaoRepository {
    * Criar nova notificação
    */
   async criar(dados: INotificacaoInput): Promise<number> {
-    // ✅ CALCULAR O STATUS AQUI
     const status = this.calcularStatus(dados.dt_primeiros_sintomas);
 
     const query = `
@@ -211,7 +240,6 @@ class NotificacaoRepository {
    * Atualizar notificação
    */
   async atualizar(id: number, dados: Partial<INotificacaoInput>): Promise<boolean> {
-    // ✅ CALCULAR O STATUS AQUI
     const status = this.calcularStatus(dados.dt_primeiros_sintomas || '');
 
     const query = `
