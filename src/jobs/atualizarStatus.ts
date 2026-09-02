@@ -9,7 +9,7 @@ import pool from '../config/database';
  * ✅ Job para atualizar automaticamente o status
  * Roda todo dia à meia-noite (00:00)
  */
-cron.schedule('0 0 * * *', async () => {
+cron.schedule('0 3 * * *', async () => {
   console.log('🔄 [CRON] Iniciando atualização automática de status...');
   console.log(`📅 Data da execução: ${new Date().toLocaleString('pt-BR')}`);
   
