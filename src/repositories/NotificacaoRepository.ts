@@ -10,13 +10,19 @@ class NotificacaoRepository {
   /**
    * ✅ Função para calcular dias entre duas datas
    */
-  private calcularDias(dataSintomas: string): number {
+  private calcularDias(dataSintomas: any): number {
     if (!dataSintomas) return 999;
+
+    // ✅ Converter para string se for um objeto Date
+    let dataStr = typeof dataSintomas === 'string'
+      ? dataSintomas
+      : dataSintomas instanceof Date
+        ? dataSintomas.toISOString().split('T')[0]
+        : String(dataSintomas);
 
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    let dataStr = dataSintomas;
     if (dataStr.includes('T')) {
       dataStr = dataStr.split('T')[0];
     }
