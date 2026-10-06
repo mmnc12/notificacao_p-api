@@ -416,7 +416,7 @@ export class RelatorioService {
             doc
               .fontSize(10)
               .font('Helvetica-Bold')
-              .fillColor('#1a5276')
+              .fillColor('#042940')
               .text('📍 Localidades com Mais Notificações', { underline: true })
               .moveDown(0.3);
 
