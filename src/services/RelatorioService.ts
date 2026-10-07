@@ -425,7 +425,7 @@ export class RelatorioService {
               doc
                 .fontSize(8)
                 .font('Helvetica')
-                .fillColor('#2c3e50')
+                .fillColor('#03111f')
                 .text(
                   `${index + 1}. ${item.localidade || 'Não informada'}`,
                   50,
@@ -442,7 +442,7 @@ export class RelatorioService {
         doc
           .fontSize(10)
           .font('Helvetica-Bold')
-          .fillColor('#1a5276')
+          .fillColor('#03111f')
           .text(`📋 Detalhamento das Notificações (Pág. ${pageNumber}/${totalPages})`, { underline: true })
           .moveDown(0.3);
 
@@ -478,7 +478,7 @@ export class RelatorioService {
             .fill(bgColor)
             .fontSize(6)
             .font('Helvetica')
-            .fillColor('#2c3e50')
+            .fillColor('#03111f')
             .text(item.id || '', colPositions.id + 5, currentY)
             .text(item.localidade || '', colPositions.localidade + 5, currentY, { width: 120 })
             .text(
@@ -499,7 +499,7 @@ export class RelatorioService {
         doc
           .fontSize(7)
           .font('Helvetica-Oblique')
-          .fillColor('#7f8c8d')
+          .fillColor('#03111f')
           .text(
             `Exibindo ${dadosPaginados.length} registros (Total: ${totalRegistros})`,
             50,
@@ -536,7 +536,7 @@ export class RelatorioService {
         doc
           .fontSize(7)
           .font('Helvetica')
-          .fillColor('#7f8c8d')
+          .fillColor('#03111f')
           .text(
             `Secretaria Municipal de Saúde • Setor de Endemias • Página ${page + 1} de ${totalPages}`,
             50,
@@ -547,7 +547,7 @@ export class RelatorioService {
         doc
           .fontSize(6)
           .font('Helvetica')
-          .fillColor('#bdc3c7')
+          .fillColor('#03111f')
           .text(
             `Relatório gerado em ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
             50,
