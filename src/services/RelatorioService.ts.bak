@@ -95,6 +95,7 @@ export class RelatorioService {
 
     query += ' ORDER BY dt_recebimento DESC';
     
+    // ✅ CORREÇÃO: Usar cast para any[] com RowDataPacket[]
     const [rows] = await pool.query<any[]>(query, params);
     return rows || [];
   }
@@ -133,6 +134,7 @@ export class RelatorioService {
       }
     }
 
+    // ✅ CORREÇÃO: Usar cast para any[]
     const [rows] = await pool.query<any[]>(statsQuery, params);
     
     const stats = rows[0] as Estatisticas;
@@ -174,6 +176,7 @@ export class RelatorioService {
 
     localidadeQuery += ' GROUP BY l.id ORDER BY total DESC';
     
+    // ✅ CORREÇÃO: Usar cast para any[]
     const [rows] = await pool.query<any[]>(localidadeQuery, localidadeParams);
     return rows as LocalidadeCount[] || [];
   }
@@ -212,6 +215,7 @@ export class RelatorioService {
 
     mesQuery += ' GROUP BY mes ORDER BY mes';
     
+    // ✅ CORREÇÃO: Usar cast para any[]
     const [rows] = await pool.query<any[]>(mesQuery, mesParams);
     return rows as MesCount[] || [];
   }
@@ -340,7 +344,7 @@ export class RelatorioService {
           .fontSize(14)
           .font('Helvetica-Bold')
           .fillColor('#1a5276')
-          .text('RELATÓRIO DE NOTIFICAÇÕES', { align: 'center' })
+          .text('📊 RELATÓRIO DE NOTIFICAÇÕES', { align: 'center' })
           .moveDown(0.3);
 
         const dataAtual = new Date().toLocaleDateString('pt-BR', {
@@ -380,7 +384,7 @@ export class RelatorioService {
             .fontSize(10)
             .font('Helvetica-Bold')
             .fillColor('#1a5276')
-            .text('Resumo Estatístico', { underline: true })
+            .text('📈 Resumo Estatístico', { underline: true })
             .moveDown(0.3);
 
           const stats = [
@@ -413,7 +417,7 @@ export class RelatorioService {
               .fontSize(10)
               .font('Helvetica-Bold')
               .fillColor('#042940')
-              .text('Localidades com Mais Notificações', { underline: true })
+              .text('📍 Localidades com Mais Notificações', { underline: true })
               .moveDown(0.3);
 
             const topLocalidades = porLocalidade.slice(0, 5);
@@ -421,7 +425,7 @@ export class RelatorioService {
               doc
                 .fontSize(8)
                 .font('Helvetica')
-                .fillColor('#000000')
+                .fillColor('#03111f')
                 .text(
                   `${index + 1}. ${item.localidade || 'Não informada'}`,
                   50,
@@ -438,8 +442,8 @@ export class RelatorioService {
         doc
           .fontSize(10)
           .font('Helvetica-Bold')
-          .fillColor('#042940')
-          .text(`Detalhamento das Notificações (Pág. ${pageNumber}/${totalPages})`, { underline: true })
+          .fillColor('#03111f')
+          .text(`📋 Detalhamento das Notificações (Pág. ${pageNumber}/${totalPages})`, { underline: true })
           .moveDown(0.3);
 
         const tableTop = doc.y;
@@ -451,18 +455,12 @@ export class RelatorioService {
           resultado: 430
         };
 
-        // ============================================
-        // CABEÇALHO DA TABELA (fundo azul + texto branco)
-        // ============================================
-        doc
-          .save()
-          .rect(50, tableTop - 2, 495, 18)
-          .fill('#1a5276')
-          .restore();
-
         doc
           .fontSize(7)
           .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .rect(50, tableTop - 2, 495, 18)
+          .fill('#1a5276')
           .fillColor('#ffffff')
           .text('ID', colPositions.id + 5, tableTop + 2)
           .text('Localidade', colPositions.localidade + 5, tableTop + 2, { width: 120 })
@@ -472,25 +470,16 @@ export class RelatorioService {
 
         let currentY = tableTop + 20;
 
-        // ============================================
-        // LINHAS DE DADOS
-        // ============================================
         dadosPaginados.forEach((item: any, index: number) => {
           const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
-
-          // 1. Fundo isolado com save/restore (NÃO afeta o texto)
+          
           doc
-            .save()
             .rect(50, currentY - 2, 495, 14)
             .fill(bgColor)
-            .restore();
-
-          // 2. Texto em preto puro, fonte um pouco maior
-          doc
-            .fontSize(7.5)
+            .fontSize(6)
             .font('Helvetica')
-            .fillColor('#000000')
-            .text(String(item.id ?? ''), colPositions.id + 5, currentY)
+            .fillColor('#03111f')
+            .text(item.id || '', colPositions.id + 5, currentY)
             .text(item.localidade || '', colPositions.localidade + 5, currentY, { width: 120 })
             .text(
               item.dt_recebimento ?
@@ -510,7 +499,7 @@ export class RelatorioService {
         doc
           .fontSize(7)
           .font('Helvetica-Oblique')
-          .fillColor('#000000')
+          .fillColor('#03111f')
           .text(
             `Exibindo ${dadosPaginados.length} registros (Total: ${totalRegistros})`,
             50,
@@ -547,7 +536,7 @@ export class RelatorioService {
         doc
           .fontSize(7)
           .font('Helvetica')
-          .fillColor('#000000')
+          .fillColor('#03111f')
           .text(
             `Secretaria Municipal de Saúde • Setor de Endemias • Página ${page + 1} de ${totalPages}`,
             50,
@@ -558,7 +547,7 @@ export class RelatorioService {
         doc
           .fontSize(6)
           .font('Helvetica')
-          .fillColor('#000000')
+          .fillColor('#03111f')
           .text(
             `Relatório gerado em ${new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
             50,
