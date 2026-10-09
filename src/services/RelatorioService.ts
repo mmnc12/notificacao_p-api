@@ -473,19 +473,19 @@ export class RelatorioService {
         let currentY = tableTop + 20;
 
         // ============================================
-        // LINHAS DE DADOS
+        // LINHAS DE DADOS (COR PRETA PURA)
         // ============================================
         dadosPaginados.forEach((item: any, index: number) => {
           const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
 
-          // 1. Fundo isolado com save/restore (NÃO afeta o texto)
+          // Fundo isolado com save/restore
           doc
             .save()
             .rect(50, currentY - 2, 495, 14)
             .fill(bgColor)
             .restore();
 
-          // 2. Texto em preto puro, fonte um pouco maior
+          // Texto dos dados em preto puro
           doc
             .fontSize(7.5)
             .font('Helvetica')
